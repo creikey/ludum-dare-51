@@ -1,0 +1,105 @@
+[gd_scene load_steps=15 format=2]
+
+[ext_resource path="res://snake.tscn" type="PackedScene" id=1]
+[ext_resource path="res://snakewiggle.tres" type="Material" id=2]
+[ext_resource path="res://SnakeCreature.gd" type="Script" id=3]
+[ext_resource path="res://snakeye.glb" type="PackedScene" id=4]
+[ext_resource path="res://eye.tres" type="Material" id=5]
+
+[sub_resource type="PhysicsMaterial" id=8]
+friction = 0.0
+
+[sub_resource type="SphereShape" id=3]
+radius = 2.50767
+
+[sub_resource type="SpatialMaterial" id=4]
+flags_unshaded = true
+albedo_color = Color( 1, 0.35, 0.35, 1 )
+
+[sub_resource type="SphereMesh" id=5]
+radius = 0.8
+height = 1.6
+
+[sub_resource type="SphereShape" id=9]
+radius = 1.64645
+
+[sub_resource type="SphereShape" id=7]
+radius = 26.8413
+
+[sub_resource type="SpatialMaterial" id=10]
+flags_transparent = true
+flags_unshaded = true
+vertex_color_use_as_albedo = true
+params_cull_mode = 2
+params_billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id=11]
+size = Vector2( 0.322, 1 )
+
+[sub_resource type="Gradient" id=12]
+colors = PoolColorArray( 1, 0, 0, 1, 1, 0, 0, 0 )
+
+[node name="SnakeCreature" type="RigidBody"]
+physics_material_override = SubResource( 8 )
+contacts_reported = 4
+contact_monitor = true
+axis_lock_angular_x = true
+axis_lock_angular_z = true
+linear_damp = 1.542
+angular_damp = 1.537
+script = ExtResource( 3 )
+
+[node name="snake" parent="." instance=ExtResource( 1 )]
+transform = Transform( -1.09278e-07, 0, 2.5, 0, 2.5, 0, -2.5, 0, -1.09278e-07, 0, 0, 0 )
+
+[node name="SnakeMesh" parent="snake/Snake/Skeleton" index="0"]
+material/0 = ExtResource( 2 )
+
+[node name="CollisionShape" type="CollisionShape" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.116707, 0, 0 )
+shape = SubResource( 3 )
+
+[node name="Heart" type="Area" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.435163, 12.0551 )
+
+[node name="MeshInstance" type="MeshInstance" parent="Heart"]
+material_override = SubResource( 4 )
+mesh = SubResource( 5 )
+
+[node name="CollisionShape" type="CollisionShape" parent="Heart"]
+shape = SubResource( 9 )
+
+[node name="SpottingArea" type="Area" parent="."]
+
+[node name="CollisionShape" type="CollisionShape" parent="SpottingArea"]
+shape = SubResource( 7 )
+
+[node name="snakeye" parent="." instance=ExtResource( 4 )]
+transform = Transform( -1.09278e-07, 0, 2.5, 0, 2.5, 0, -2.5, 0, -1.09278e-07, 0, 0, 0 )
+
+[node name="SnakeEye" parent="snakeye" index="0"]
+material/0 = ExtResource( 5 )
+
+[node name="SnakeDeathParticles" type="CPUParticles" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.214378, 11.9845 )
+material_override = SubResource( 10 )
+emitting = false
+amount = 32
+lifetime = 1.5
+one_shot = true
+explosiveness = 1.0
+mesh = SubResource( 11 )
+spread = 180.0
+initial_velocity = 10.18
+angular_velocity = 225.49
+angular_velocity_random = 1.0
+color_ramp = SubResource( 12 )
+
+[connection signal="body_entered" from="." to="." method="_on_SnakeCreature_body_entered"]
+[connection signal="body_entered" from="Heart" to="." method="_on_Heart_body_entered"]
+
+[editable path="snake"]
+[editable path="snakeye"]

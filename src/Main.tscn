@@ -1,0 +1,358 @@
+[gd_scene load_steps=22 format=2]
+
+[ext_resource path="res://SnakeCreature.tscn" type="PackedScene" id=1]
+[ext_resource path="res://Player.tscn" type="PackedScene" id=2]
+[ext_resource path="res://Rock.tscn" type="PackedScene" id=3]
+[ext_resource path="res://Elevator.tscn" type="PackedScene" id=4]
+[ext_resource path="res://OutlineCamera.gd" type="Script" id=5]
+[ext_resource path="res://Medkit.tscn" type="PackedScene" id=6]
+[ext_resource path="res://Wall.tscn" type="PackedScene" id=7]
+[ext_resource path="res://End.gd" type="Script" id=8]
+
+[sub_resource type="ProceduralSky" id=4]
+sky_top_color = Color( 0.152941, 0.184314, 0.219608, 1 )
+sky_horizon_color = Color( 0.152941, 0.184314, 0.219608, 1 )
+ground_bottom_color = Color( 0.152941, 0.184314, 0.219608, 1 )
+ground_horizon_color = Color( 0.152941, 0.184314, 0.219608, 1 )
+ground_curve = 1.1143
+sun_color = Color( 0.14902, 0.184314, 0.219608, 1 )
+sun_angle_min = 0.0
+sun_angle_max = 0.0
+sun_curve = 0.0233258
+sun_energy = 0.0
+
+[sub_resource type="Environment" id=1]
+background_mode = 2
+background_sky = SubResource( 4 )
+ambient_light_color = Color( 1, 1, 1, 1 )
+ambient_light_energy = 0.35
+ambient_light_sky_contribution = 0.0
+fog_enabled = true
+fog_color = Color( 0.152941, 0.184314, 0.219608, 1 )
+fog_depth_begin = 9.0
+fog_depth_end = 25.2
+glow_enabled = true
+
+[sub_resource type="BoxShape" id=2]
+extents = Vector3( 2000, 1, 2000 )
+
+[sub_resource type="Shader" id=7]
+code = "// NOTE: Shader automatically converted from Godot Engine 3.5.stable's SpatialMaterial.
+
+shader_type spatial;
+render_mode async_visible,blend_mix,depth_draw_opaque,cull_back,diffuse_burley,specular_schlick_ggx;
+uniform vec4 albedo : hint_color;
+uniform vec4 other_albedo : hint_color;
+uniform sampler2D texture_albedo : hint_albedo;
+uniform float specular;
+uniform float metallic;
+uniform float roughness : hint_range(0,1);
+uniform float point_size : hint_range(0,128);
+uniform vec3 uv1_scale;
+uniform vec3 uv1_offset;
+uniform vec3 uv2_scale;
+uniform vec3 uv2_offset;
+
+float random(vec2 p)
+{    
+	float x = dot(p,vec2(4371.321,-9137.327));    
+    return 2.0 * fract(sin(x)*17381.94472) - 1.0;
+}
+
+float noise( in vec2 p )
+{
+    vec2 id = floor( p );
+    vec2 f = fract( p );
+	
+	vec2 u = f*f*(3.0-2.0*f);
+
+    return mix(mix(random(id + vec2(0.0,0.0)), 
+                   random(id + vec2(1.0,0.0)), u.x),
+               mix(random(id + vec2(0.0,1.0)), 
+                   random(id + vec2(1.0,1.0)), u.x), 
+               u.y);
+}
+
+float fbm( vec2 p )
+{
+    float f = 0.0;
+    float gat = 0.0;
+    
+    for (float octave = 0.; octave < 5.; ++octave)
+    {
+        float la = pow(2.0, octave);
+        float ga = pow(0.5, octave + 1.);
+        f += ga*noise( la * p ); 
+        gat += ga;
+    }
+    
+    f = f/gat;
+    
+    return f;
+}
+
+
+void vertex() {
+	UV=UV*uv1_scale.xy+uv1_offset.xy;
+}
+
+void fragment() {
+	vec2 base_uv = UV;
+	vec4 albedo_tex = texture(texture_albedo,base_uv);
+	ALBEDO = mix(albedo, other_albedo, step(fbm(UV*1000.0), 0.00)).rgb;
+	METALLIC = metallic;
+	ROUGHNESS = roughness;
+	SPECULAR = specular;
+}
+"
+
+[sub_resource type="ShaderMaterial" id=8]
+shader = SubResource( 7 )
+shader_param/albedo = Color( 0.111, 0.1305, 0.15, 1 )
+shader_param/other_albedo = Color( 0.0901961, 0.109804, 0.129412, 1 )
+shader_param/specular = 0.5
+shader_param/metallic = 0.0
+shader_param/roughness = 1.0
+shader_param/point_size = 1.0
+shader_param/uv1_scale = Vector3( 1, 1, 1 )
+shader_param/uv1_offset = Vector3( 0, 0, 0 )
+shader_param/uv2_scale = Vector3( 1, 1, 1 )
+shader_param/uv2_offset = Vector3( 0, 0, 0 )
+
+[sub_resource type="PlaneMesh" id=3]
+size = Vector2( 1000, 1000 )
+
+[sub_resource type="CubeMesh" id=14]
+size = Vector3( 30, 2, 30 )
+
+[sub_resource type="BoxShape" id=15]
+extents = Vector3( 15, 1, 15 )
+
+[sub_resource type="SpatialMaterial" id=16]
+flags_unshaded = true
+
+[sub_resource type="SphereMesh" id=17]
+
+[sub_resource type="SphereShape" id=18]
+
+[sub_resource type="Shader" id=9]
+code = "shader_type canvas_item;
+
+uniform vec4 line_color : hint_color = vec4(1);
+uniform float line_thickness : hint_range(0, 10) = 1.0;
+
+vec4 process(vec4 outline_color, vec4 sample) {
+       outline_color.a += sample.a;
+       outline_color = mix(outline_color, sample, sample.a);
+       return outline_color;
+}
+
+void fragment() {
+       vec2 size = TEXTURE_PIXEL_SIZE * line_thickness;
+       vec4 outline_color = vec4(0, 0, 0, 0);
+
+       outline_color = process(outline_color, texture(TEXTURE, UV + vec2(-size.x, 0)));
+
+       outline_color = process(outline_color, texture(TEXTURE, UV + vec2(0, size.y)));
+
+       outline_color = process(outline_color, texture(TEXTURE, UV + vec2(size.x, 0)));
+
+       outline_color = process(outline_color, texture(TEXTURE, UV + vec2(0, -size.y)));
+
+
+       outline_color = process(outline_color, texture(TEXTURE, UV + vec2(-size.x, size.y)));
+
+       outline_color = process(outline_color, texture(TEXTURE, UV + vec2(-size.x, size.y * 0.5)));
+
+
+
+       outline_color = process(outline_color, texture(TEXTURE, UV + vec2(size.x, size.y)));
+       outline_color = process(outline_color, texture(TEXTURE, UV + vec2(size.x, size.y * 0.5)));
+
+
+       outline_color = process(outline_color, texture(TEXTURE, UV + vec2(-size.x, -size.y)));
+       outline_color = process(outline_color, texture(TEXTURE, UV + vec2(-size.x, -size.y * 0.5)));
+
+
+
+       outline_color = process(outline_color, texture(TEXTURE, UV + vec2(size.x, -size.y)));
+       outline_color = process(outline_color, texture(TEXTURE, UV + vec2(size.x, -size.y * 0.5)));
+
+
+       outline_color.a = min(outline_color.a, 1.0);
+
+
+       vec4 color = texture(TEXTURE, UV);
+       COLOR = mix(vec4(0,0,0,0), outline_color, outline_color.a - color.a);
+}"
+
+[sub_resource type="ShaderMaterial" id=10]
+shader = SubResource( 9 )
+shader_param/line_color = Color( 1, 1, 1, 1 )
+shader_param/line_thickness = 1.0
+
+[node name="Main" type="Spatial"]
+
+[node name="Level" type="Spatial" parent="."]
+
+[node name="Rock" parent="Level" instance=ExtResource( 3 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -6.89646, 2.37018, 0.79464 )
+
+[node name="Rock2" parent="Level" instance=ExtResource( 3 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -11.8946, 2.37018, -5.6288 )
+
+[node name="Rock3" parent="Level" instance=ExtResource( 3 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -12.2802, 2.37018, 3.74387 )
+
+[node name="SnakeCreature" parent="Level" instance=ExtResource( 1 )]
+transform = Transform( 0.817617, 0, 0.575762, 0, 1, 0, -0.575762, 0, 0.817617, -31.9143, 2.45781, 1.07909 )
+
+[node name="SnakeCreature2" parent="Level" instance=ExtResource( 1 )]
+transform = Transform( 0.817617, 0, 0.575762, 0, 1, 0, -0.575762, 0, 0.817617, -75.0123, 2.45781, 16.2785 )
+
+[node name="SnakeCreature3" parent="Level" instance=ExtResource( 1 )]
+transform = Transform( 0.817617, 0, 0.575762, 0, 1, 0, -0.575762, 0, 0.817617, -75.5872, 2.45781, -19.696 )
+
+[node name="SnakeCreature8" parent="Level" instance=ExtResource( 1 )]
+transform = Transform( 0.817617, 0, 0.575762, 0, 1, 0, -0.575762, 0, 0.817617, -144.997, 2.45781, 15.3513 )
+
+[node name="SnakeCreature9" parent="Level" instance=ExtResource( 1 )]
+transform = Transform( 0.817617, 0, 0.575762, 0, 1, 0, -0.575762, 0, 0.817617, -140.232, 2.45781, -6.86891 )
+
+[node name="SnakeCreature15" parent="Level" instance=ExtResource( 1 )]
+transform = Transform( 0.817617, 0, 0.575762, 0, 1, 0, -0.575762, 0, 0.817617, -184.285, 2.45782, -13.7486 )
+
+[node name="SnakeCreature16" parent="Level" instance=ExtResource( 1 )]
+transform = Transform( 0.817617, 0, 0.575762, 0, 1, 0, -0.575762, 0, 0.817617, -175.618, 2.45782, -22.8615 )
+
+[node name="SnakeCreature10" parent="Level" instance=ExtResource( 1 )]
+transform = Transform( 0.817617, 0, 0.575762, 0, 1, 0, -0.575762, 0, 0.817617, -126.091, 2.45781, -31.6985 )
+
+[node name="SnakeCreature4" parent="Level" instance=ExtResource( 1 )]
+transform = Transform( 0.817617, 0, 0.575762, 0, 1, 0, -0.575762, 0, 0.817617, -60.345, 2.45781, -71.835 )
+
+[node name="SnakeCreature11" parent="Level" instance=ExtResource( 1 )]
+transform = Transform( -0.995958, 0, -0.0898159, 0, 1, 0, 0.0898159, 0, -0.995958, -30.5864, 2.45781, -64.8504 )
+
+[node name="SnakeCreature12" parent="Level" instance=ExtResource( 1 )]
+transform = Transform( -0.995958, 0, -0.0898159, 0, 1, 0, 0.0898159, 0, -0.995958, -21.4037, 2.45781, -64.8504 )
+
+[node name="SnakeCreature13" parent="Level" instance=ExtResource( 1 )]
+transform = Transform( -0.995958, 0, -0.0898159, 0, 1, 0, 0.0898159, 0, -0.995958, -11.1459, 2.45781, -64.8504 )
+
+[node name="SnakeCreature14" parent="Level" instance=ExtResource( 1 )]
+transform = Transform( -0.995958, 0, -0.0898159, 0, 1, 0, 0.0898159, 0, -0.995958, -24.3897, 2.45781, -90.6586 )
+
+[node name="SnakeCreature5" parent="Level" instance=ExtResource( 1 )]
+transform = Transform( 0.817617, 0, 0.575762, 0, 1, 0, -0.575762, 0, 0.817617, -68.885, 2.45781, -72.1823 )
+
+[node name="SnakeCreature6" parent="Level" instance=ExtResource( 1 )]
+transform = Transform( 0.817617, 0, 0.575762, 0, 1, 0, -0.575762, 0, 0.817617, -76.7865, 2.45781, -72.5975 )
+
+[node name="SnakeCreature7" parent="Level" instance=ExtResource( 1 )]
+transform = Transform( 0.817617, 0, 0.575762, 0, 1, 0, -0.575762, 0, 0.817617, -88.5027, 2.45781, -70.0671 )
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Level"]
+environment = SubResource( 1 )
+
+[node name="Floor" type="StaticBody" parent="Level"]
+
+[node name="CollisionShape" type="CollisionShape" parent="Level/Floor"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0 )
+shape = SubResource( 2 )
+
+[node name="MeshInstance" type="MeshInstance" parent="Level/Floor"]
+material_override = SubResource( 8 )
+mesh = SubResource( 3 )
+
+[node name="DirectionalLight" type="DirectionalLight" parent="Level"]
+transform = Transform( 0.590028, -0.609016, -0.530063, 0, -0.65652, 0.754309, -0.807383, -0.445063, -0.387365, 0, 0, 0 )
+shadow_enabled = true
+
+[node name="Wall" parent="Level" instance=ExtResource( 7 )]
+
+[node name="Wall2" parent="Level" instance=ExtResource( 7 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -203.092, 0, 0 )
+
+[node name="Wall3" parent="Level" instance=ExtResource( 7 )]
+transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -203.092, 0, -126.278 )
+
+[node name="Wall4" parent="Level" instance=ExtResource( 7 )]
+transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -203.092, 0, 186.186 )
+
+[node name="Elevator" parent="Level" instance=ExtResource( 4 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -12.1155, 0, 0 )
+
+[node name="Elevator2" parent="Level" instance=ExtResource( 4 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -78.1598, 0, 0 )
+
+[node name="Salvation" type="Spatial" parent="Level"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -151.551, 0, -97.4843 )
+
+[node name="Floor" type="StaticBody" parent="Level/Salvation"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 13.6232, 0 )
+
+[node name="Mesh" type="MeshInstance" parent="Level/Salvation/Floor"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 10 )
+mesh = SubResource( 14 )
+skeleton = NodePath("../..")
+
+[node name="CollisionShape" type="CollisionShape" parent="Level/Salvation/Floor"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 10 )
+shape = SubResource( 15 )
+
+[node name="End" type="RigidBody" parent="Level/Salvation/Floor" groups=["ends"]]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -11.2852, 2.38872, 0 )
+collision_layer = 3
+collision_mask = 3
+script = ExtResource( 8 )
+
+[node name="MeshInstance" type="MeshInstance" parent="Level/Salvation/Floor/End"]
+material_override = SubResource( 16 )
+mesh = SubResource( 17 )
+
+[node name="CollisionShape" type="CollisionShape" parent="Level/Salvation/Floor/End"]
+shape = SubResource( 18 )
+
+[node name="Outline" type="Spatial" parent="Level/Salvation/Floor/End"]
+visible = false
+
+[node name="Elevator" parent="Level/Salvation" instance=ExtResource( 4 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 18.0419, 0, 0 )
+
+[node name="Medkit" parent="Level" instance=ExtResource( 6 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -3.60616, 1.87388, 0 )
+
+[node name="Player" parent="." instance=ExtResource( 2 )]
+transform = Transform( -4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, -152.36, 27.1511, -96.1097 )
+
+[node name="ViewportContainer" type="ViewportContainer" parent="."]
+material = SubResource( 10 )
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+stretch = true
+
+[node name="Viewport" type="Viewport" parent="ViewportContainer"]
+size = Vector2( 1024, 600 )
+transparent_bg = true
+handle_input_locally = false
+render_target_update_mode = 3
+
+[node name="OutlineCamera" type="Camera" parent="ViewportContainer/Viewport"]
+cull_mask = 2
+script = ExtResource( 5 )
+
+[node name="EndRocks" type="Spatial" parent="."]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="Finished" type="Label" parent="CanvasLayer"]
+visible = false
+anchor_left = 0.5
+anchor_right = 0.5
+margin_left = -27.0
+margin_right = 27.0
+margin_bottom = 14.0
+text = "Finished"
+align = 1

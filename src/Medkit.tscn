@@ -1,0 +1,29 @@
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://medkit.glb" type="PackedScene" id=2]
+
+[sub_resource type="SpatialMaterial" id=5]
+flags_unshaded = true
+
+[sub_resource type="ConvexPolygonShape" id=6]
+points = PoolVector3Array( 0.12448, 0.27422, 0.425455, -0.12677, -0.27193, -0.426654, -0.1367, -0.258998, -0.423472, -0.127762, -0.263025, 0.441071, 0.136455, -0.262245, -0.42875, -0.136681, 0.262019, -0.423412, 0.136455, -0.262245, 0.42875, 0.135408, 0.263292, -0.425482, -0.136681, 0.262019, 0.423412, -0.127294, 0.265108, -0.439444, 0.135408, 0.263292, 0.425482, 0.125444, -0.273256, 0.428723, 0.125654, 0.265725, 0.440474, -0.1367, -0.258998, 0.423472, 0.126122, -0.263643, -0.442101, -0.125806, 0.272894, -0.423386, -0.127294, 0.265108, 0.439444, 0.125654, 0.265725, -0.440474, 0.125444, -0.273256, -0.428723, -0.127762, -0.263025, -0.441071, -0.12677, -0.27193, 0.426654, 0.12448, 0.27422, -0.425455, 0.126122, -0.263643, 0.442101, -0.125806, 0.272894, 0.423386 )
+
+[node name="Medkit" type="RigidBody" groups=["medkits"]]
+collision_layer = 3
+collision_mask = 3
+mass = 9.0
+
+[node name="Outline" parent="." instance=ExtResource( 2 )]
+visible = false
+
+[node name="Medkit" parent="Outline" index="0"]
+layers = 2
+material/0 = SubResource( 5 )
+material/1 = SubResource( 5 )
+
+[node name="CollisionShape" type="CollisionShape" parent="."]
+shape = SubResource( 6 )
+
+[node name="medkit" parent="." instance=ExtResource( 2 )]
+
+[editable path="Outline"]
